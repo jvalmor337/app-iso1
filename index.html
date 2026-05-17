@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AD-Check ISO | Windows Server i Active Directory</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    :root {
+      --primary: #0f3d3e;
+      --primary-2: #0f766e;
+      --primary-soft: #e6f4f1;
+      --bg: #eef3f7;
+      --card: #ffffff;
+      --text: #1f2933;
+      --muted: #64748b;
+      --line: #d8e2ea;
+      --ok: #16a34a;
+      --warn: #f59e0b;
+      --err: #dc2626;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.16), transparent 34%),
+        linear-gradient(135deg, #eef3f7 0%, #f8fbfc 100%);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 18px;
+    }
+
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0f3d3e, #0f766e);
+      color: white;
+      padding: 24px;
+      border-radius: 22px;
+      margin-bottom: 16px;
+      box-shadow: 0 12px 28px rgba(15, 61, 62, 0.22);
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 0.82rem;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      margin-bottom: 6px;
+      letter-spacing: -0.03em;
+    }
+
+    header p {
+      font-size: 0.98rem;
+      opacity: 0.95;
+      max-width: 780px;
+    }
+
+    .tabs-wrap {
+      background: rgba(255, 255, 255, 0.74);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(216, 226, 234, 0.9);
+      border-radius: 18px;
+      padding: 10px;
+      margin-bottom: 16px;
+      box-shadow: 0 6px 18px rgba(15, 61, 62, 0.08);
+      position: sticky;
+      top: 10px;
+      z-index: 10;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    .tab-btn {
+      margin: 0;
+      padding: 10px 8px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--primary);
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .tab-btn:hover {
+      background: var(--primary-soft);
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 6px 14px rgba(15, 61, 62, 0.18);
+    }
+
+    .tab-panel {
+      display: none;
+      animation: fade 0.18s ease-in-out;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    @keyframes fade {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--card);
+      padding: 20px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      box-shadow: 0 8px 22px rgba(15, 61, 62, 0.08);
+      margin-bottom: 16px;
+    }
+
+    .card h2 {
+      font-size: 1.15rem;
+      margin-bottom: 6px;
+      color: var(--primary);
+    }
+
+    .intro {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 16px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      font-size: 0.88rem;
+      color: #24313a;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 11px;
+      border: 1px solid #cbd5df;
+      border-radius: 12px;
+      font-size: 0.94rem;
+      background: #fbfdff;
+      outline: none;
+      transition: border 0.15s, box-shadow 0.15s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary-2);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.13);
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .help {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    button.action {
+      background: var(--primary-2);
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-size: 0.96rem;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 7px 16px rgba(15, 118, 110, 0.18);
+    }
+
+    button.action:hover {
+      background: #0b5f59;
+    }
+
+    button.secondary {
+      background: #475569;
+      box-shadow: none;
+    }
+
+    button.secondary:hover {
+      background: #334155;
+    }
+
+    .result-box {
+      padding: 14px;
+      border-radius: 14px;
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-left: 6px solid #94a3b8;
+      background: #f8fafc;
+    }
+
+    .ok {
+      border-left-color: var(--ok);
+      background: #ecfdf3;
+    }
+
+    .warning {
+      border-left-color: var(--warn);
+      background: #fffbeb;
+    }
+
+    .error {
+      border-left-color: var(--err);
+      background: #fef2f2;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .tag-ok {
+      background: #bbf7d0;
+      color: #166534;
+    }
+
+    .tag-warning {
+      background: #fde68a;
+      color: #92400e;
+    }
+
+    .tag-error {
+      background: #fecaca;
+      color: #991b1b;
+    }
+
+    .score-panel {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .score {
+      font-size: 2.6rem;
+      font-weight: 900;
+      color: var(--primary);
+      letter-spacing: -0.06em;
+    }
+
+    .meter {
+      width: 100%;
+      height: 12px;
+      background: #dce7ed;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .meter span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: var(--primary-2);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    ul {
+      margin-left: 20px;
+      margin-top: 8px;
+    }
+
+    .copy-box {
+      background: #eef6f5;
+      border: 1px dashed #97c5bf;
+      padding: 16px;
+      border-radius: 14px;
+      white-space: pre-wrap;
+      font-family: Consolas, monospace;
+      font-size: 0.88rem;
+      margin-top: 10px;
+      max-height: 390px;
+      overflow: auto;
+    }
+
+    .mini-note {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #7c2d12;
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 0.88rem;
+      margin-top: 12px;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    @media (max-width: 850px) {
+      body { padding: 12px; }
+      .tabs { grid-template-columns: 1fr 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .score-panel { grid-template-columns: 1fr; }
+      header h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-top">
+        <div>
+          <h1>AD-Check ISO</h1>
+          <p>Assistent educatiu compacte per a preparar una pràctica de Windows Server i Active Directory en 1r ASIR.</p>
+        </div>
+        <div class="badge">RA: Windows Server · AD DS · DNS · Permisos</div>
+      </div>
+    </header>
+
+    <nav class="tabs-wrap" aria-label="Pestanyes de l'aplicació">
+      <div class="tabs">
+        <button class="tab-btn active" type="button" onclick="obrirPestanya('servidor')">1. Servidor</button>
+        <button class="tab-btn" type="button" onclick="obrirPestanya('client')">2. Client i xarxa</button>
+        <button class="tab-btn" type="button" onclick="obrirPestanya('ad')">3. Active Directory</button>
+        <button class="tab-btn" type="button" onclick="obrirPestanya('permisos')">4. Permisos</button>
+        <button class="tab-btn" type="button" onclick="obrirPestanya('resultatsTab')">5. Revisió</button>
+      </div>
+    </nav>
+
+    <main>
+      <section id="servidor" class="tab-panel active">
+        <div class="card">
+          <h2>1. Configuració del servidor</h2>
+          <p class="intro">Comprova que el controlador de domini està ben identificat i que la configuració IP/DNS és coherent.</p>
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="serverName">Nom del servidor</label>
+              <input id="serverName" type="text" placeholder="Exemple: SRV-DC01" />
+            </div>
+
+            <div class="field">
+              <label for="serverIp">IP del servidor</label>
+              <input id="serverIp" type="text" placeholder="Exemple: 192.168.10.10" />
+            </div>
+
+            <div class="field">
+              <label for="staticIp">La IP del servidor és estàtica?</label>
+              <select id="staticIp">
+                <option value="">Selecciona una opció</option>
+                <option value="si">Sí</option>
+                <option value="no">No</option>
+              </select>
+              <p class="help">Un controlador de domini hauria de tindre IP fixa.</p>
+            </div>
+
+            <div class="field">
+              <label for="serverDns">DNS configurat al servidor</label>
+              <input id="serverDns" type="text" placeholder="Exemple: 192.168.10.10" />
+              <p class="help">Normalment ha d'apuntar a ell mateix o al DNS intern del domini.</p>
+            </div>
+
+            <div class="field full">
+              <label for="domainName">Nom del domini</label>
+              <input id="domainName" type="text" placeholder="Exemple: asir.local" />
+              <p class="help">Per a pràctiques d'aula és habitual usar un domini intern, com asir.local o aula.local.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="client" class="tab-panel">
+        <div class="card">
+          <h2>2. Client Windows i connectivitat</h2>
+          <p class="intro">Abans d'unir el client al domini, cal comprovar DNS, Firewall i ping bidireccional.</p>
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="clientName">Nom del client Windows</label>
+              <input id="clientName" type="text" placeholder="Exemple: CLI-W10-01" />
+            </div>
+
+            <div class="field">
+              <label for="clientDns">DNS configurat al client</label>
+              <input id="clientDns" type="text" placeholder="Exemple: 192.168.10.10" />
+              <p class="help">Per unir-se al domini, el client ha d'usar com a DNS el servidor AD.</p>
+            </div>
+
+            <div class="field">
+              <label for="joinedDomain">El client s'unirà al domini?</label>
+              <select id="joinedDomain">
+                <option value="">Selecciona una opció</option>
+                <option value="si">Sí</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="firewallRules">Has revisat les regles d'entrada del Firewall de Windows?</label>
+              <select id="firewallRules">
+                <option value="">Selecciona una opció</option>
+                <option value="si">Sí, he revisat les regles necessàries</option>
+                <option value="no">No, no les he revisades</option>
+                <option value="no_cal">No cal per a aquesta prova</option>
+              </select>
+              <p class="help">No són regles de Firefox, sinó regles d'entrada del Firewall.</p>
+            </div>
+
+            <div class="field full">
+              <label for="pingBidirectional">S'ha pogut fer ping bidireccional amb èxit?</label>
+              <select id="pingBidirectional">
+                <option value="">Selecciona una opció</option>
+                <option value="si">Sí, servidor ↔ client funciona</option>
+                <option value="nomes_client_servidor">Només client → servidor</option>
+                <option value="nomes_servidor_client">Només servidor → client</option>
+                <option value="no">No, no hi ha ping correcte</option>
+              </select>
+              <p class="help">Cal comprovar connectivitat en els dos sentits: client → servidor i servidor → client.</p>
+            </div>
+          </div>
+
+          <div class="mini-note">
+            Pista docent: si falla el ping, abans de tocar Active Directory cal revisar IP, màscara, adaptador de VirtualBox i Firewall de Windows.
+          </div>
+        </div>
+      </section>
+
+      <section id="ad" class="tab-panel">
+        <div class="card">
+          <h2>3. Estructura d'Active Directory</h2>
+          <p class="intro">Defineix una estructura mínima d'OU, usuaris i grups per administrar el domini de forma ordenada.</p>
+
+          <div class="form-grid">
+            <div class="field full">
+              <label for="ous">Unitats organitzatives previstes</label>
+              <textarea id="ous" placeholder="Exemple: Alumnat, Professorat, Administració"></textarea>
+            </div>
+
+            <div class="field">
+              <label for="users">Usuaris que es crearan</label>
+              <textarea id="users" placeholder="Exemple: alumne01, alumne02, profe01"></textarea>
+            </div>
+
+            <div class="field">
+              <label for="groups">Grups de seguretat</label>
+              <textarea id="groups" placeholder="Exemple: GG_Alumnat, GG_Professorat"></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="permisos" class="tab-panel">
+        <div class="card">
+          <h2>4. Carpeta compartida i permisos</h2>
+          <p class="intro">Revisa si els permisos s'apliquen de forma adequada i segura.</p>
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="shareName">Nom de la carpeta compartida</label>
+              <input id="shareName" type="text" placeholder="Exemple: Dades_ASIR" />
+            </div>
+
+            <div class="field">
+              <label for="permissionType">Permís principal</label>
+              <select id="permissionType">
+                <option value="">Selecciona una opció</option>
+                <option value="lectura">Lectura</option>
+                <option value="modificar">Modificar</option>
+                <option value="control_total">Control total</option>
+              </select>
+            </div>
+
+            <div class="field full">
+              <label for="permissionTarget">A qui aplicaràs els permisos?</label>
+              <select id="permissionTarget">
+                <option value="">Selecciona una opció</option>
+                <option value="grups">A grups de seguretat</option>
+                <option value="usuaris">Directament a usuaris</option>
+                <option value="tots">A Todos / Everyone</option>
+              </select>
+              <p class="help">En administració real és millor aplicar permisos a grups, no usuari per usuari.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="resultatsTab" class="tab-panel">
+        <div class="card">
+          <h2>5. Revisió automàtica</h2>
+          <p class="intro">Prem el botó per rebre feedback abans de fer la pràctica en VirtualBox.</p>
+          <div class="actions">
+            <button class="action" onclick="analitzar()">Analitzar configuració</button>
+            <button class="action secondary" onclick="netejar()">Netejar</button>
+          </div>
+          <div id="resultats"></div>
+        </div>
+
+        <div class="card">
+          <h2>6. Resum per a la memòria de pràctica</h2>
+          <p class="intro">Aquest resum es pot copiar i enganxar en la memòria de l'activitat.</p>
+          <div id="resum" class="copy-box">Encara no s'ha generat cap resum.</div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      App educativa per al mòdul Implantació de Sistemes Operatius - 1r ASIR.
+    </footer>
+  </div>
+
+  <script>
+    function obrirPestanya(id) {
+      document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+
+    function anarAResultats() {
+      document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('resultatsTab').classList.add('active');
+      document.querySelectorAll('.tab-btn')[4].classList.add('active');
+    }
+
+    function esIpValida(ip) {
+      const regex = /^(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})(\.(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})){3}$/;
+      return regex.test(ip.trim());
+    }
+
+    function afegirResultat(contenidor, tipus, titol, missatge) {
+      const div = document.createElement('div');
+      div.className = 'result-box ' + tipus;
+
+      let etiqueta = 'INFO';
+      let tagClass = 'tag-warning';
+      if (tipus === 'ok') {
+        etiqueta = 'CORRECTE';
+        tagClass = 'tag-ok';
+      } else if (tipus === 'error') {
+        etiqueta = 'ERROR A REVISAR';
+        tagClass = 'tag-error';
+      } else {
+        etiqueta = 'MILLORABLE';
+        tagClass = 'tag-warning';
+      }
+
+      div.innerHTML = `<span class="tag ${tagClass}">${etiqueta}</span><h3>${titol}</h3><p>${missatge}</p>`;
+      contenidor.appendChild(div);
+    }
+
+    function comptarElements(text) {
+      return text.split(/[\n,;]/).map(x => x.trim()).filter(x => x.length > 0).length;
+    }
+
+    function analitzar() {
+      const serverName = document.getElementById('serverName').value.trim();
+      const serverIp = document.getElementById('serverIp').value.trim();
+      const staticIp = document.getElementById('staticIp').value;
+      const serverDns = document.getElementById('serverDns').value.trim();
+      const domainName = document.getElementById('domainName').value.trim();
+      const clientName = document.getElementById('clientName').value.trim();
+      const clientDns = document.getElementById('clientDns').value.trim();
+      const joinedDomain = document.getElementById('joinedDomain').value;
+      const firewallRules = document.getElementById('firewallRules').value;
+      const pingBidirectional = document.getElementById('pingBidirectional').value;
+      const ous = document.getElementById('ous').value.trim();
+      const users = document.getElementById('users').value.trim();
+      const groups = document.getElementById('groups').value.trim();
+      const shareName = document.getElementById('shareName').value.trim();
+      const permissionTarget = document.getElementById('permissionTarget').value;
+      const permissionType = document.getElementById('permissionType').value;
+
+      const resultats = document.getElementById('resultats');
+      resultats.innerHTML = '';
+
+      let punts = 0;
+      let maxim = 12;
+      let preguntes = [];
+
+      if (serverName.length >= 3) {
+        punts++;
+        afegirResultat(resultats, 'ok', 'Nom del servidor', 'El servidor té un nom identificable. És recomanable utilitzar noms clars com SRV-DC01.');
+      } else {
+        afegirResultat(resultats, 'warning', 'Nom del servidor', 'Falta indicar un nom de servidor clar. Utilitza un nom professional i fàcil d’identificar.');
+      }
+
+      if (esIpValida(serverIp)) {
+        punts++;
+        afegirResultat(resultats, 'ok', 'IP del servidor', 'La IP del servidor té un format correcte.');
+      } else {
+        afegirResultat(resultats, 'error', 'IP del servidor', 'La IP del servidor no és vàlida o està buida. Revisa el format, per exemple 192.168.10.10.');
+      }
+
+      if (staticIp === 'si') {
+        punts++;
+        afegirResultat(resultats, 'ok', 'IP estàtica', 'Correcte. Un controlador de domini ha de tindre una IP estable.');
+      } else {
+        afegirResultat(resultats, 'error', 'IP estàtica', 'Error habitual: un servidor amb Active Directory no hauria d’utilitzar IP dinàmica perquè els clients podrien no localitzar el domini.');
+        preguntes.push('Per què un controlador de domini necessita IP estàtica?');
+      }
+
+      if (serverDns === serverIp && esIpValida(serverDns)) {
+        punts++;
+        afegirResultat(resultats, 'ok', 'DNS del servidor', 'Correcte. El servidor apunta al seu propi servei DNS intern.');
+      } else {
+        afegirResultat(resultats, 'warning', 'DNS del servidor', 'Revisa el DNS del servidor. En un controlador de domini, normalment ha d’apuntar a la seua pròpia IP o al DNS intern del domini.');
+      }
+
+      if (domainName.includes('.') && domainName.length >= 5) {
+        punts++;
+        afegirResultat(resultats, 'ok', 'Nom del domini', 'El nom del domini és coherent. Per a pràctiques d’aula es pot usar un domini intern com asir.local.');
+      } else {
+        afegirResultat(resultats, 'warning', 'Nom del domini', 'El domini hauria de tindre un format clar, per exemple asir.local o aula.local.');
+      }
+
+      if (clientName.length >= 3 && joinedDomain === 'si') {
+        punts++;
+        afegirResultat(resultats, 'ok', 'Client Windows', 'El client està identificat i es preveu unir-lo al domini.');
+      } else {
+        afegirResultat(resultats, 'warning', 'Client Windows', 'Indica un nom de client i confirma que s’unirà al domini per completar l’escenari.');
+      }
+
+      if (clientDns === serverIp && esIpValida(clientDns)) {
+        punts++;
+        afegirResultat(resultats, 'ok', 'DNS del client', 'Correcte. El client apunta al servidor AD com a DNS, condició clau per unir-se al domini.');
+      } else {
+        afegirResultat(resultats, 'error', 'DNS del client', 'Error habitual: si el client usa un DNS extern, com 8.8.8.8, probablement no trobarà el domini. El DNS del client ha d’apuntar al servidor AD.');
+        preguntes.push('Per què el DNS del client ha d’apuntar al servidor Active Directory?');
+      }
+
+      if (firewallRules === 'si') {
+        punts++;
+        afegirResultat(resultats, 'ok', 'Firewall de Windows', 'Correcte. Has tingut en compte les regles d’entrada del Firewall de Windows. Això és important si vols comprovar serveis com ping, administració remota, compartició de fitxers o accés a recursos del servidor.');
+      } else if (firewallRules === 'no') {
+        afegirResultat(resultats, 'warning', 'Firewall de Windows', 'Revisa aquest punt: no són regles de Firefox. Si un client no pot accedir a un servei del servidor, pot ser necessari habilitar regles d’entrada del Firewall de Windows, per exemple compartició d’arxius, ICMP/ping o administració remota.');
+        preguntes.push('Quina diferència hi ha entre el navegador Firefox i les regles d’entrada del Firewall de Windows?');
+      } else if (firewallRules === 'no_cal') {
+        punts++;
+        afegirResultat(resultats, 'ok', 'Firewall de Windows', 'Has indicat que no cal modificar el Firewall per a aquesta prova. Tot i així, si falla la connectivitat, serà un dels primers punts a revisar.');
+      } else {
+        afegirResultat(resultats, 'warning', 'Firewall de Windows', 'Indica si has revisat les regles d’entrada del Firewall. En algunes proves no cal tocar-les, però és important saber quan poden bloquejar la connexió.');
+      }
+
+      if (pingBidirectional === 'si') {
+        punts++;
+        afegirResultat(resultats, 'ok', 'Ping bidireccional', 'Correcte. Hi ha comunicació entre servidor i client en els dos sentits. Aquesta comprovació és bàsica abans d’unir el client al domini.');
+      } else if (pingBidirectional === 'nomes_client_servidor') {
+        afegirResultat(resultats, 'warning', 'Ping bidireccional', 'Només funciona el ping del client al servidor. Revisa el Firewall del client, la xarxa de VirtualBox, la IP del client i que tots dos equips estiguen en la mateixa xarxa.');
+        preguntes.push('Què revisaries si només funciona el ping del client al servidor?');
+      } else if (pingBidirectional === 'nomes_servidor_client') {
+        afegirResultat(resultats, 'warning', 'Ping bidireccional', 'Només funciona el ping del servidor al client. Revisa el Firewall del servidor, la IP del servidor, la màscara i la configuració de xarxa del client.');
+        preguntes.push('Què revisaries si només funciona el ping del servidor al client?');
+      } else if (pingBidirectional === 'no') {
+        afegirResultat(resultats, 'error', 'Ping bidireccional', 'No hi ha ping correcte. Abans de continuar amb Active Directory, revisa IP, màscara, adaptador de xarxa de VirtualBox, connectivitat i Firewall de Windows.');
+        preguntes.push('Quins quatre elements comprovaries si no hi ha ping entre servidor i client?');
+      } else {
+        afegirResultat(resultats, 'warning', 'Ping bidireccional', 'Indica si s’ha pogut fer ping en els dos sentits. Sense connectivitat bàsica, el client pot fallar en unir-se al domini.');
+      }
+
+      if (comptarElements(ous) >= 1 && comptarElements(users) >= 1) {
+        punts++;
+        afegirResultat(resultats, 'ok', 'OU i usuaris', 'Has previst una estructura mínima d’unitats organitzatives i usuaris.');
+      } else {
+        afegirResultat(resultats, 'warning', 'OU i usuaris', 'Organitza els usuaris en unitats organitzatives. Això facilita l’administració i l’aplicació de directives.');
+        preguntes.push('Quina diferència hi ha entre una OU i un grup de seguretat?');
+      }
+
+      if (comptarElements(groups) >= 1) {
+        punts++;
+        afegirResultat(resultats, 'ok', 'Grups de seguretat', 'Correcte. Els grups permeten administrar permisos de manera més eficient.');
+      } else {
+        afegirResultat(resultats, 'warning', 'Grups de seguretat', 'És recomanable crear grups de seguretat i aplicar permisos als grups, no a usuaris individuals.');
+      }
+
+      if (shareName && permissionTarget === 'grups' && permissionType) {
+        punts++;
+        afegirResultat(resultats, 'ok', 'Permisos sobre carpeta compartida', 'Configuració adequada: els permisos s’apliquen a grups de seguretat.');
+      } else if (permissionTarget === 'usuaris') {
+        afegirResultat(resultats, 'warning', 'Permisos sobre carpeta compartida', 'Millorable: aplicar permisos directament a usuaris funciona, però no és la pràctica més recomanable. És millor usar grups.');
+        preguntes.push('Per què és millor aplicar permisos a grups que directament a usuaris?');
+      } else if (permissionTarget === 'tots') {
+        afegirResultat(resultats, 'error', 'Permisos sobre carpeta compartida', 'Revisa aquesta decisió: donar permisos a Todos/Everyone pot ser insegur i poc controlat.');
+        preguntes.push('Quin risc té assignar permisos amplis a Todos o Everyone?');
+      } else {
+        afegirResultat(resultats, 'warning', 'Permisos sobre carpeta compartida', 'Completa la carpeta compartida, el tipus de permís i a qui s’aplicarà.');
+      }
+
+      const nota = Math.round((punts / maxim) * 10);
+      const valoracio = document.createElement('div');
+      valoracio.className = 'result-box ' + (nota >= 8 ? 'ok' : nota >= 5 ? 'warning' : 'error');
+      valoracio.innerHTML = `
+        <div class="score-panel">
+          <div>
+            <h3>Valoració final</h3>
+            <p class="score">${nota}/10</p>
+          </div>
+          <div>
+            <p>${nota >= 8 ? 'Configuració molt adequada. Pots començar la pràctica amb seguretat.' : nota >= 5 ? 'Configuració parcialment correcta. Revisa els avisos abans de començar.' : 'Configuració amb errors importants. Cal corregir-la abans de fer la pràctica.'}</p>
+            <div class="meter"><span style="width:${nota * 10}%"></span></div>
+          </div>
+        </div>`;
+      resultats.prepend(valoracio);
+
+      if (preguntes.length === 0) {
+        preguntes = [
+          'Per què el DNS és un element clau en Active Directory?',
+          'Quina diferència hi ha entre usuari, grup i unitat organitzativa?',
+          'Com comprovaries que el client s’ha unit correctament al domini?'
+        ];
+      }
+
+      const preguntesHtml = document.createElement('div');
+      preguntesHtml.className = 'result-box warning';
+      preguntesHtml.innerHTML = `<h3>Preguntes de comprovació</h3><ul>${preguntes.map(p => `<li>${p}</li>`).join('')}</ul>`;
+      resultats.appendChild(preguntesHtml);
+
+      const resum = `RESUM DE CONFIGURACIÓ ACTIVE DIRECTORY\n\n` +
+        `Servidor: ${serverName || 'No indicat'}\n` +
+        `IP del servidor: ${serverIp || 'No indicada'}\n` +
+        `IP estàtica: ${staticIp || 'No indicat'}\n` +
+        `DNS del servidor: ${serverDns || 'No indicat'}\n` +
+        `Domini: ${domainName || 'No indicat'}\n` +
+        `Client Windows: ${clientName || 'No indicat'}\n` +
+        `DNS del client: ${clientDns || 'No indicat'}\n` +
+        `Client unit al domini: ${joinedDomain || 'No indicat'}\n` +
+        `Firewall revisat: ${firewallRules || 'No indicat'}\n` +
+        `Ping bidireccional: ${pingBidirectional || 'No indicat'}\n\n` +
+        `OU previstes: ${ous || 'No indicades'}\n` +
+        `Usuaris: ${users || 'No indicats'}\n` +
+        `Grups de seguretat: ${groups || 'No indicats'}\n\n` +
+        `Carpeta compartida: ${shareName || 'No indicada'}\n` +
+        `Permisos aplicats a: ${permissionTarget || 'No indicat'}\n` +
+        `Tipus de permís: ${permissionType || 'No indicat'}\n\n` +
+        `Valoració automàtica: ${nota}/10\n` +
+        `Conclusió: ${nota >= 8 ? 'Configuració adequada per iniciar la pràctica.' : nota >= 5 ? 'Cal revisar alguns punts abans de continuar.' : 'Cal corregir errors importants abans de continuar.'}`;
+
+      document.getElementById('resum').textContent = resum;
+      anarAResultats();
+    }
+
+    function netejar() {
+      document.querySelectorAll('input, textarea, select').forEach(element => element.value = '');
+      document.getElementById('resultats').innerHTML = '';
+      document.getElementById('resum').textContent = 'Encara no s\'ha generat cap resum.';
+    }
+  </script>
+</body>
+</html>
